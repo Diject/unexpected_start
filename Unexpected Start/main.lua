@@ -57,7 +57,7 @@ local state = 0 -- 10 when done
 local mainQuestName = "a1_1_findspymaster"
 
 local readyMessage = "You are ready to go."
-local modName = "Unexpected Start"
+local modName = "An Unexpected Start"
 
 local newCell = nil
 
@@ -468,6 +468,19 @@ function this.activateExit(e)
             tes3.runLegacyScript{command = "EnableStatReviewMenu"} ---@diagnostic disable-line: missing-fields
             state = 9
             tes3.removeItem{reference = tes3.player, item = chargenStatsSheet, updateGUI = true}
+			tes3.runLegacyScript{command = 'Journal, "A1_1_FindSpymaster", 1'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'player->AddItem, "bk_A1_1_DirectionsCaiusCosades", 1'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'player->AddItem,  "bk_a1_1_caiuspackage", 1'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'player->Additem, "Gold_001", 87'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'addtopic "Caius Cosades"'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'Addtopic "South Wall"'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'addtopic "specific place"'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'addtopic "someone in particular"'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'addtopic "services"'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'addtopic "my trade"'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'addtopic "little secret"'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'addtopic "latest rumors"'} ---@diagnostic disable-line: missing-fields
+			tes3.runLegacyScript{command = 'addtopic "little advice"'} ---@diagnostic disable-line: missing-fields
             timer.start{duration = 0.5, callback = function()
                 tes3.messageBox{message = readyMessage, duration = 10}
             end}
@@ -548,7 +561,7 @@ function this.registerModConfig()
                     },
                     {
                         class = "OnOffButton",
-                        label = "Lock the exit from the starting location until the character generation sequence is complete",
+                        label = "Lock a exit from the starting location until the character generation sequence is complete",
                         inGameOnly = false,
                         variable = {
                             class = "Variable",
@@ -576,7 +589,7 @@ function this.registerModConfig()
                     },
                     {
                         class = "OnOffButton",
-                        label = "Start the game only in a location near a city",
+                        label = "Try to start the game only in a location near a city",
                         inGameOnly = false,
                         variable = {
                             id = "onlyInACity",
