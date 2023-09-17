@@ -33,8 +33,8 @@ local doorsToUnlockInChargenCell = {
 
 local guards = {"Imperial Guard"}
 
-local dataName = "unexpected_start_BD"
-local configName = "UnexpectedStartByDiject"
+local dataName = "an_unexpected_start_BD"
+local configName = "AnUnexpectedStartByDiject"
 
 local config = mwse.loadConfig(configName)
 if not config then
