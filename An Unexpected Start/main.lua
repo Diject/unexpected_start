@@ -551,7 +551,7 @@ function this.registerModConfig()
                     },
                     {
                         class = "OnOffButton",
-                        label = "Randomly pick a new location to start the game",
+                        label = "Enable the mod",
                         inGameOnly = false,
                         variable = {
                             id = "enabled",
