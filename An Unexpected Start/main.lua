@@ -36,17 +36,6 @@ local guards = {"Imperial Guard"}
 local dataName = "an_unexpected_start_BD"
 local configName = "AnUnexpectedStartByDiject"
 
-local config = mwse.loadConfig(configName)
-if not config then
-    config = {
-        enabled = false,
-        chanceToSpawnGuard = 0.5,
-        allowJustExit = true,
-        onlyInACity = false,
-    }
-    mwse.saveConfig(configName, config)
-end
-
 chargenNPCs["chargen class"].ref = nil
 chargenNPCs["chargen dock guard"].ref = nil
 chargenNPCs["chargen name"].ref = nil
@@ -55,12 +44,57 @@ chargenNPCs["chargen captain"].ref = nil
 local state = 0 -- 10 when done
 
 local mainQuestName = "a1_1_findspymaster"
+local levitationSpellName = "usbd_levitation_passive_spell"
 
 local readyMessage = "You are ready to go."
 local modName = "An Unexpected Start"
 
 local newCell = nil
 
+local function deepcopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in next, orig, nil do
+            copy[deepcopy(orig_key)] = deepcopy(orig_value)
+        end
+        setmetatable(copy, deepcopy(getmetatable(orig)))
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+
+local function addMissing(toTable, fromTable)
+    for label, val in pairs(fromTable) do
+        if type(val) == "table" then
+            if toTable[label] == nil then
+                toTable[label] = deepcopy(val)
+            else
+                if type(toTable[label]) ~= "table" then toTable[label] = {} end
+                addMissing(toTable[label], val)
+            end
+        elseif toTable[label] == nil then
+            toTable[label] = val
+        end
+    end
+end
+
+local config = mwse.loadConfig(configName)
+local defaultConfig = {
+    enabled = false,
+    chanceToSpawnGuard = 0.5,
+    allowJustExit = true,
+    onlyInACity = true,
+    applyLevitation = true,
+}
+if not config then
+    config = deepcopy(defaultConfig)
+    mwse.saveConfig(configName, config)
+else
+    addMissing(config, defaultConfig)
+end
 
 
 local function getGroundZ(vector)
@@ -227,6 +261,48 @@ function this.enableAllControls()
     tes3.runLegacyScript{command = "EnablePlayerJumping"} ---@diagnostic disable-line: missing-fields
 end
 
+local angleCounter = 0
+local notOnGroundCounter = 0
+local levitationEnabled = false
+local lockLevitation = false
+local levitationTimer
+function this.levitation(timerData)
+    if not config.applyLevitation then
+        tes3.removeSpell{reference = tes3.player, spell = levitationSpellName, updateGUI = true}
+        return
+    end
+    local xAngle = tes3.getPlayerEyeVector().z
+    if xAngle and xAngle > 0.5 then
+        angleCounter = angleCounter + 1
+    else
+        angleCounter = 0
+    end
+    local spotZ = getGroundZ(tes3.player.position)
+    local onGround = spotZ and (tes3.player.position.z - getGroundZ(tes3.player.position)) < 5 or true
+    if not levitationEnabled and tes3.mobilePlayer.isFalling then
+        notOnGroundCounter = notOnGroundCounter + 1
+    else
+        notOnGroundCounter = 0
+    end
+    local function enableLevitation()
+        if not levitationEnabled then
+            tes3.addSpell{reference = tes3.player, spell = levitationSpellName, updateGUI = true}
+            tes3.playSound{sound = "alteration hit"}
+            levitationEnabled = true
+        end
+    end
+    if angleCounter > 20 then
+        enableLevitation()
+    elseif notOnGroundCounter > 13 then
+        enableLevitation()
+        lockLevitation = true
+    elseif onGround or not lockLevitation then
+        tes3.removeSpell{reference = tes3.player, spell = levitationSpellName, updateGUI = true}
+        lockLevitation = false
+        levitationEnabled = false
+    end
+end
+
 function this.onSimulate(e)
     if chargenNPCs["chargen name"].ref and state == 2 and chargenNPCs["chargen name"].ref.context then
         local variables = chargenNPCs["chargen name"].ref.context:getVariableData()
@@ -294,6 +370,9 @@ function this.finishCharacterGeneration()
     this.resoreInitialData(newCell)
     event.unregister(tes3.event.cellChanged, this.finishCharacterGeneration)
     this.unregisterEvents()
+    if levitationTimer then
+        levitationTimer:cancel()
+    end
 end
 
 function this.journalEvent(e)
@@ -440,6 +519,8 @@ function this.toRandomCell()
     tes3.positionCell{reference = tes3.player, cell = newCell, position = tes3vector3.new(0, 0, 0), orientation = tes3vector3.new(0, 0, 0),
         forceCellChange = true, suppressFader = true, teleportCompanions = true}
     state = state < 1 and 1 or state
+
+    levitationTimer = timer.start{duration = 0.1, iterations = -1, callback = this.levitation}
 end
 
 function this.activateExit(e)
@@ -533,6 +614,16 @@ event.register(tes3.event.loaded, function(e)
     timer.start{duration = 0.5, callback = function() this.toRandomCell() end}
 end)
 
+event.register(tes3.event.initialized, function(e)
+    if not tes3.getObject(levitationSpellName) then
+        local spell = tes3.createObject{id = levitationSpellName, objectType = tes3.objectType.spell, castType = tes3.spellType.ability}
+        spell.effects[1].id = tes3.effect.levitate
+        spell.effects[1].max = 10
+        spell.effects[1].min = 10
+        spell.effects[1].rangeType = tes3.effectRange.self
+    end
+end)
+
 function this.registerModConfig()
     local easyMCMData = {
         name = modName,
@@ -593,6 +684,17 @@ function this.registerModConfig()
                         inGameOnly = false,
                         variable = {
                             id = "onlyInACity",
+                            class = "TableVariable",
+                            table = config,
+                        },
+                    },
+                    {
+                        class = "OnOffButton",
+                        label = "Apply levitation when you are falling or looking up",
+                        description = "This setting allows you to bypass some locations that are impossible to complete without it",
+                        inGameOnly = false,
+                        variable = {
+                            id = "applyLevitation",
                             class = "TableVariable",
                             table = config,
                         },
