@@ -373,6 +373,15 @@ function this.finishCharacterGeneration()
     if levitationTimer then
         levitationTimer:cancel()
     end
+    if state < 10 then
+        timer.start{duration = 1, iterations = -1, callback = function(tmData)
+            if state < 10 then
+                this.forceChargenStep()
+            else
+                tmData.timer:cancel()
+            end
+        end}
+    end
 end
 
 function this.journalEvent(e)
@@ -523,51 +532,58 @@ function this.toRandomCell()
     levitationTimer = timer.start{duration = 0.1, iterations = -1, callback = this.levitation}
 end
 
+function this.forceChargenStep()
+    if state < 5 then
+        tes3.runLegacyScript{command = "EnableRaceMenu"} ---@diagnostic disable-line: missing-fields
+        state = 5
+        return
+    end
+    if state < 7 then
+        tes3.runLegacyScript{command = "EnableClassMenu"} ---@diagnostic disable-line: missing-fields
+        state = 7
+        return
+    end
+    if state < 8 then
+        tes3.runLegacyScript{command = "EnableBirthMenu"} ---@diagnostic disable-line: missing-fields
+        state = 8
+        this.enableAllControls()
+        return
+    end
+    if state < 9 then
+        tes3.runLegacyScript{command = "EnableStatReviewMenu"} ---@diagnostic disable-line: missing-fields
+        state = 9
+        tes3.removeItem{reference = tes3.player, item = chargenStatsSheet, updateGUI = true}
+        tes3.runLegacyScript{command = 'Journal, "A1_1_FindSpymaster", 1'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'player->AddItem, "bk_A1_1_DirectionsCaiusCosades", 1'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'player->AddItem,  "bk_a1_1_caiuspackage", 1'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'player->Additem, "Gold_001", 87'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'addtopic "Caius Cosades"'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'Addtopic "South Wall"'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'addtopic "specific place"'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'addtopic "someone in particular"'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'addtopic "services"'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'addtopic "my trade"'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'addtopic "little secret"'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'addtopic "latest rumors"'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = 'addtopic "little advice"'} ---@diagnostic disable-line: missing-fields
+        timer.start{duration = 0.5, callback = function()
+            tes3.messageBox{message = readyMessage, duration = 10}
+        end}
+    end
+    state = 10
+    return true
+end
+
 function this.activateExit(e)
     if e.activator == tes3.player and e.target.object.objectType == tes3.objectType.door and e.target.destination and
             not e.target.destination.cell.isInterior and state < 10 then
 
         e.block = true
         e.claim = true
-        if state < 5 then
-            tes3.runLegacyScript{command = "EnableRaceMenu"} ---@diagnostic disable-line: missing-fields
-            state = 5
-            return
+        local isFinished = this.forceChargenStep()
+        if isFinished then
+            event.unregister(tes3.event.activate, this.activateExit)
         end
-        if state < 7 then
-            tes3.runLegacyScript{command = "EnableClassMenu"} ---@diagnostic disable-line: missing-fields
-            state = 7
-            return
-        end
-        if state < 8 then
-            tes3.runLegacyScript{command = "EnableBirthMenu"} ---@diagnostic disable-line: missing-fields
-            state = 8
-            this.enableAllControls()
-            return
-        end
-        if state < 9 then
-            tes3.runLegacyScript{command = "EnableStatReviewMenu"} ---@diagnostic disable-line: missing-fields
-            state = 9
-            tes3.removeItem{reference = tes3.player, item = chargenStatsSheet, updateGUI = true}
-			tes3.runLegacyScript{command = 'Journal, "A1_1_FindSpymaster", 1'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'player->AddItem, "bk_A1_1_DirectionsCaiusCosades", 1'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'player->AddItem,  "bk_a1_1_caiuspackage", 1'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'player->Additem, "Gold_001", 87'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'addtopic "Caius Cosades"'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'Addtopic "South Wall"'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'addtopic "specific place"'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'addtopic "someone in particular"'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'addtopic "services"'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'addtopic "my trade"'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'addtopic "little secret"'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'addtopic "latest rumors"'} ---@diagnostic disable-line: missing-fields
-			tes3.runLegacyScript{command = 'addtopic "little advice"'} ---@diagnostic disable-line: missing-fields
-            timer.start{duration = 0.5, callback = function()
-                tes3.messageBox{message = readyMessage, duration = 10}
-            end}
-        end
-        event.unregister(tes3.event.activate, this.activateExit)
-        state = 10
     end
 end
 
