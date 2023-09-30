@@ -97,6 +97,14 @@ else
 end
 
 
+---@param vector1 tes3vector3
+---@param vector2 tes3vector3
+---@return number
+local function get2DDistance(vector1, vector2)
+    if not vector1 or not vector2 then return 0 end
+    return math.sqrt((vector2.x - vector1.x) ^ 2 + (vector2.y - vector1.y) ^ 2)
+end
+
 local function getGroundZ(vector)
     local res = tes3.rayTest {
         position = vector,
@@ -311,7 +319,7 @@ function this.onSimulate(e)
             tes3.runLegacyScript{command = "EnablePlayerJumping"} ---@diagnostic disable-line: missing-fields
             if chargenNPCs["chargen dock guard"].ref then
                 local npc = chargenNPCs["chargen dock guard"].ref
-                timer.start{duration = 5, callback = function(tmData)
+                timer.start{duration = 5 + math.max(0, 4 - get2DDistance(npc.position, tes3.player.position) / 200), callback = function(tmData)
                     timer.start{duration = 1, iterations = -1, callback = function()
                         if state < 4 and npc then
                             tes3.setAITravel{reference = npc, destination = tes3.player.position, reset = true}
@@ -426,15 +434,31 @@ function this.prepareCell(e)
         chargenNPCs["chargen class"].ref = nil
         chargenNPCs["chargen dock guard"].ref = nil
         chargenNPCs["chargen captain"].ref = nil
+        local chargenNPCIds = {"chargen name", "chargen dock guard", "chargen class", "chargen captain"}
         do
             local refForSpot = {}
             for ref in newCell:iterateReferences({tes3.objectType.npc, tes3.objectType.creature}) do
                 ref:disable()
                 table.insert(refForSpot, ref)
             end
-            for id, params in pairs(chargenNPCs) do
+            for _, id in ipairs(chargenNPCIds) do
+                local params = chargenNPCs[id]
+                if not params then goto continue end
                 local oldRefId = math.random(#refForSpot)
                 local oldRef = refForSpot[oldRefId]
+                if id == "chargen dock guard" and chargenNPCs["chargen name"].ref then
+                    local chargenNamePos = chargenNPCs["chargen name"].ref.position
+                    local minDistance = math.huge
+                    for refPos, ref in pairs(refForSpot) do
+                        local mul = 1 + math.floor(math.abs(ref.position.z - chargenNamePos.z) / 100)
+                        local distance = get2DDistance(ref.position, chargenNamePos) * mul
+                        if distance < minDistance then
+                            minDistance = distance
+                            oldRefId = refPos
+                            oldRef = ref
+                        end
+                    end
+                end
                 local npcCell = tes3.getCell(params.cell)
                 if not npcCell then goto continue end
                 local newRef = nil
@@ -448,10 +472,7 @@ function this.prepareCell(e)
                     tes3.positionCell{reference = newRef, cell = oldRef.cell, position = oldRef.position, orientation = oldRef.orientation,
                         forceCellChange = false, suppressFader = false, teleportCompanions = true}
                 end
-                if id == "chargen name" then chargenNPCs["chargen name"].ref = newRef
-                elseif id == "chargen class" then chargenNPCs["chargen class"].ref = newRef
-                elseif id == "chargen dock guard" then chargenNPCs["chargen dock guard"].ref = newRef
-                elseif id == "chargen captain" then chargenNPCs["chargen captain"].ref = newRef end
+                if chargenNPCs[id] then chargenNPCs[id].ref = newRef end
                 table.remove(refForSpot, oldRefId)
                 if #refForSpot == 0 then break end
                 ::continue::
