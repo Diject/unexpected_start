@@ -438,8 +438,10 @@ function this.prepareCell(e)
         do
             local refForSpot = {}
             for ref in newCell:iterateReferences({tes3.objectType.npc, tes3.objectType.creature}) do
-                ref:disable()
-                table.insert(refForSpot, ref)
+                if ref.baseObject.health > 0 then
+                    ref:disable()
+                    table.insert(refForSpot, ref)
+                end
             end
             for _, id in ipairs(chargenNPCIds) do
                 local params = chargenNPCs[id]
@@ -521,7 +523,9 @@ function this.toRandomCell()
     for _, cell in pairs(tes3.dataHandler.nonDynamicData.cells) do
         local count = 0
         for ref in cell:iterateReferences({tes3.objectType.npc, tes3.objectType.creature}) do
-            count = count + 1
+            if ref.baseObject.health > 0 then
+                count = count + 1
+            end
         end
         local hasToExDoor = false
         local cityCheck = not config.onlyInACity
