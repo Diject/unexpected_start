@@ -339,11 +339,12 @@ function this.onSimulate(e)
             if value == 10 and state < 6 then
                 this.faceActorToActor(chargenNPCs["chargen class"].ref, tes3.player)
                 this.faceActorToActor(chargenNPCs["chargen dock guard"].ref, tes3.player)
+                tes3.runLegacyScript{command = 'set state to 60', reference = chargenNPCs["chargen dock guard"].ref,}
                 state = state < 6 and 6 or state
             elseif value == 20 then
                 tes3.addItem{reference = tes3.player, item = chargenStatsSheet, count = 1}
                 local pos = chargenNPCs["chargen captain"].ref.position ---@diagnostic disable-line: undefined-field, need-check-nil
-                tes3.setAITravel{reference = chargenNPCs["chargen dock guard"].ref, destination = this.randomPointInRadius(pos, 50, 25), reset = true} ---@diagnostic disable-line: undefined-field, need-check-nil, assign-type-mismatch
+                tes3.setAITravel{reference = chargenNPCs["chargen dock guard"].ref, destination = pos, reset = true} ---@diagnostic disable-line: undefined-field, need-check-nil, assign-type-mismatch
                 state = state < 8 and 8 or state
             end
         end
@@ -355,10 +356,10 @@ function this.onSimulate(e)
             if state == 3 and value == 30 then
                 state = state < 4 and 4 or state
             elseif value == 50 and state == 4 then
-                local ref = chargenNPCs["chargen dock guard"].ref
+                local ref = chargenNPCs["chargen dock guard"].ref  
                 local pos = chargenNPCs["chargen class"].ref.position
                 timer.start{duration = 7, callback = function()
-                    tes3.setAITravel{reference = ref, destination = this.randomPointInRadius(pos, 50, 25), reset = true}
+                    tes3.setAITravel{reference = ref, destination = pos, reset = true}
                 end}
                 state = state < 5 and 5 or state
             end
@@ -452,9 +453,9 @@ function this.prepareCell(e)
                     local chargenNamePos = chargenNPCs["chargen name"].ref.position
                     local minDistance = math.huge
                     for refPos, ref in pairs(refForSpot) do
-                        local mul = 1 + math.floor(math.abs(ref.position.z - chargenNamePos.z) / 100)
-                        local distance = get2DDistance(ref.position, chargenNamePos) * mul
-                        if distance < minDistance then
+                        local mul = math.floor(math.abs(ref.position.z - chargenNamePos.z) / 100)
+                        local distance = get2DDistance(ref.position, chargenNamePos) + 1000 * mul
+                        if distance < minDistance and distance > 150 then
                             minDistance = distance
                             oldRefId = refPos
                             oldRef = ref
@@ -591,6 +592,22 @@ function this.forceChargenStep()
         tes3.runLegacyScript{command = 'addtopic "little secret"'} ---@diagnostic disable-line: missing-fields
         tes3.runLegacyScript{command = 'addtopic "latest rumors"'} ---@diagnostic disable-line: missing-fields
         tes3.runLegacyScript{command = 'addtopic "little advice"'} ---@diagnostic disable-line: missing-fields
+        tes3.runLegacyScript{command = '"CharGen Boat"->Disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen Boat Guard 1"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen Boat Guard 2"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen Dock Guard"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_cabindoor"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_chest_02_empty"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_crate_01"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_crate_01_empty"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_crate_01_misc01"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_crate_02"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_lantern_03_sway"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_ship_trapdoor"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_barrel_01"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_barrel_02"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGenbarrel_01_drinks"->disable'} ---@diagnostic disable-line: missing-fields
+		tes3.runLegacyScript{command = '"CharGen_plank"->disable'} ---@diagnostic disable-line: missing-fields
         timer.start{duration = 0.5, callback = function()
             tes3.messageBox{message = readyMessage, duration = 10}
         end}
