@@ -88,6 +88,7 @@ local defaultConfig = {
     allowJustExit = true,
     onlyInACity = true,
     applyLevitation = true,
+    delayBeforeStart = 0.5,
 }
 if not config then
     config = deepcopy(defaultConfig)
@@ -669,7 +670,7 @@ event.register(tes3.event.loaded, function(e)
     event.register(tes3.event.cellChanged, this.prepareCell)
     event.register(tes3.event.simulate, this.onSimulate)
     if config.allowJustExit then event.register(tes3.event.activate, this.activateExit) end
-    timer.start{duration = 0.5, callback = function() this.toRandomCell() end}
+    timer.start{duration = config.delayBeforeStart, callback = function() this.toRandomCell() end}
 end)
 
 event.register(tes3.event.initialized, function(e)
@@ -682,6 +683,7 @@ event.register(tes3.event.initialized, function(e)
     end
 end)
 
+local EasyMCM = require("easyMCM.EasyMCM")
 function this.registerModConfig()
     local easyMCMData = {
         name = modName,
@@ -757,6 +759,43 @@ function this.registerModConfig()
                             table = config,
                         },
                     },
+                    {
+                        class = "Category",
+                        components = {
+                            {
+                                class = "Info",
+                                text = "Delay before the script starts. Increase it if the game freezes after the start. "..
+                                    "Or decrease it if the start dialog from Jiub is skipped. Default is 0.5",
+                            },
+                            {
+                                class = "TextField",
+                                postCreate = function(self)
+                                    self.elements.submitButton:destroy()
+                                    self.elements.border.maxWidth = 100
+                                    self.elements.inputField:register("destroy", function()
+                                        local val = tonumber(self.elements.inputField.text)
+                                        if not val then return end
+                                        if val < 0.1 then val = 0.1 end
+                                        if val > 5 then val = 5 end
+                                        config.delayBeforeStart = val
+                                    end)
+                                end,
+                                variable = EasyMCM.createVariable{
+                                    numbersOnly = true,
+                                    get = function(self)
+                                        return config.delayBeforeStart
+                                    end,
+                                    set = function(self, strVal)
+                                        local val = tonumber(strVal)
+                                        if not val then return end
+                                        if val < 0.1 then val = 0.1 end
+                                        if val > 5 then val = 5 end
+                                        config.delayBeforeStart = val
+                                    end,
+                                },
+                            },
+                        },
+                    }
                 },
             },
         },
